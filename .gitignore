@@ -1,0 +1,11 @@
+/build/
+/cmake-build-*/
+/.cache/
+/.aws/
+/.codex/
+/.agents/
+.env
+.env.*
+*.o
+*.a
+*.so
