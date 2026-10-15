@@ -12,6 +12,6 @@ constexpr unsigned version(std::span<const std::byte> packet) {
 }
 
 
-}
+} // namespace netstack::ipv4
 
 #endif // NETSTACK_IPV4_HPP

@@ -3,6 +3,8 @@
 
 #include "unique_fd.hpp"
 
+#include <array>
+#include <cerrno>
 #include <iostream>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -13,15 +15,19 @@
 #include <cstring>
 #include <cstddef>
 #include <span>
+#include <stdexcept>
+#include <system_error>
 
-#define TUN_PATH "/dev/net/tun"
-#define IPV4_SIZE 65535
+namespace netstack {
+
+inline constexpr char tun_path[] = "/dev/net/tun";
+inline constexpr std::size_t max_ipv4_packet_size = 65'535;
 
 class TunDevice {
 public:
     std::string name;
     UniqueFd tun_fd;
-    std::array<std::byte, IPV4_SIZE> buffer{};
+    std::array<std::byte, max_ipv4_packet_size> buffer{};
     
     explicit TunDevice(const std::string& name);
     ssize_t read_packet();
@@ -30,5 +36,7 @@ public:
     private:
 
 };
+
+} // namespace netstack
 
 #endif // NETSTACK_TUN_DEVICE_HPP

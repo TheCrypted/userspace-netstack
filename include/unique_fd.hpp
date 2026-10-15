@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 
+namespace netstack {
+
 class UniqueFd {
 public:
     explicit UniqueFd(int fd = -1) noexcept : fd(fd) {}
@@ -40,5 +42,7 @@ public:
 private:
     int fd;
 };
+
+} // namespace netstack
 
 #endif // NETSTACK_UNIQUE_FD_HPP
