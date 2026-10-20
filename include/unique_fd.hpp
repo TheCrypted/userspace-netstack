@@ -14,14 +14,12 @@ public:
     }
 
     // Prevent copy construction
-    UniqueFd(const UniqueFd&) = delete;
+    UniqueFd(const UniqueFd &) = delete;
     // Prevent copy assignment
-    UniqueFd& operator=(const UniqueFd&) = delete;
+    UniqueFd &operator=(const UniqueFd &) = delete;
 
-    UniqueFd(UniqueFd&& other) noexcept : fd(other.fd) {
-        other.fd = -1;
-    }
-    UniqueFd& operator=(UniqueFd&& other) noexcept {
+    UniqueFd(UniqueFd &&other) noexcept : fd(other.fd) { other.fd = -1; }
+    UniqueFd &operator=(UniqueFd &&other) noexcept {
         if (fd >= 0) {
             close(fd);
         }
@@ -31,13 +29,9 @@ public:
         return *this;
     }
 
-    int get() const noexcept {
-       return fd; 
-    }
+    int get() const noexcept { return fd; }
 
-    bool is_valid() {
-        return fd >= 0;
-    }
+    bool is_valid() { return fd >= 0; }
 
 private:
     int fd;

@@ -2,15 +2,19 @@
 #define NETSTACK_IPV4_HPP
 
 #include <cstddef>
+#include <stdexcept>
 #include <span>
 
 namespace netstack::ipv4 {
 
 constexpr unsigned version(std::span<const std::byte> packet) {
+    if (packet.empty()) {
+        throw std::invalid_argument("version requested for empty packet");
+    }
+
     auto ver_nibble = std::to_integer<unsigned>(packet[0] >> 4);
     return ver_nibble;
 }
-
 
 } // namespace netstack::ipv4
 

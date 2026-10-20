@@ -2,21 +2,12 @@
 #define NETSTACK_TUN_DEVICE_HPP
 
 #include "unique_fd.hpp"
+#include "tun_syscalls.hpp"
 
 #include <array>
-#include <cerrno>
-#include <iostream>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/if.h>
-#include <linux/if_tun.h>
-#include <unistd.h>
-#include <string>
-#include <cstring>
 #include <cstddef>
 #include <span>
-#include <stdexcept>
-#include <system_error>
+#include <string>
 
 namespace netstack {
 
@@ -28,13 +19,13 @@ public:
     std::string name;
     UniqueFd tun_fd;
     std::array<std::byte, max_ipv4_packet_size> buffer{};
-    
-    explicit TunDevice(const std::string& name);
-    ssize_t read_packet();
-    size_t write_packet(std::span<const std::byte> packet);
 
-    private:
+    explicit TunDevice(const std::string &name, TunSyscalls &syscaller);
+    std::size_t read_packet();
+    std::size_t write_packet(std::span<const std::byte> packet);
 
+private:
+    TunSyscalls &_syscaller;
 };
 
 } // namespace netstack

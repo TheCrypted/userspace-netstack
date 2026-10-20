@@ -15,6 +15,16 @@ cmake --build build
 
 The executable is `build/app`. TUN access requires `/dev/net/tun` and suitable interface permissions.
 
+## Formatting
+
+VS Code's Microsoft C/C++ extension formats C++ files on save using `.clang-format`: four-space indentation, attached braces, and a 100-column wrapping target. Include order is preserved. Use Format Document to format manually.
+
+For command-line formatting, install `clang-format` (`sudo apt install clang-format` on Ubuntu), then run:
+
+```sh
+clang-format -i include/*.hpp src/*.cpp tests/unit/*.cpp tests/support/*.hpp
+```
+
 ## Current status
 
 Initial implementation: descriptor ownership, TUN attachment and packet reading, and IPv4 version extraction. Packet writing is a placeholder. The executable is not yet connected to the TUN code; it currently prints a startup message and loops until interrupted.
