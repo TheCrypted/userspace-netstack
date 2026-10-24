@@ -13,7 +13,7 @@
 namespace netstack {
 
 TunDevice::TunDevice(const std::string &name, TunSyscalls &syscaller)
-    : name(name), tun_fd(syscaller.open_device()), _syscaller(syscaller) {
+    : name(name), tun_fd(syscaller.open_device(), syscaller), _syscaller(syscaller) {
     if (!tun_fd.is_valid()) {
         throw std::system_error(errno, std::generic_category(), "Failed to open TUN device");
     }

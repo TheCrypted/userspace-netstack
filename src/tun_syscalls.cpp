@@ -11,6 +11,10 @@ int LinuxTunSyscalls::open_device() {
     return ::open("/dev/net/tun", O_RDWR | O_CLOEXEC);
 }
 
+int LinuxTunSyscalls::close(int fd) noexcept {
+    return ::close(fd);
+}
+
 int LinuxTunSyscalls::attach(int fd, ifreq &request) {
     return ::ioctl(fd, TUNSETIFF, &request);
 }

@@ -10,6 +10,7 @@ namespace netstack::test {
 class MockTunSyscalls : public TunSyscalls {
 public:
     MOCK_METHOD(int, open_device, (), (override));
+    MOCK_METHOD(int, close, (int fd), (noexcept, override));
     MOCK_METHOD(int, attach, (int fd, ifreq &request), (override));
     MOCK_METHOD(ssize_t, read, (int fd, std::span<std::byte> buffer), (override));
     MOCK_METHOD(ssize_t, write, (int fd, std::span<const std::byte> packet), (override));

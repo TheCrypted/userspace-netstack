@@ -13,6 +13,7 @@ public:
     virtual ~TunSyscalls() = default;
 
     virtual int open_device() = 0;
+    virtual int close(int fd) noexcept = 0;
     virtual int attach(int fd, ifreq &request) = 0;
     virtual ssize_t read(int fd, std::span<std::byte> buffer) = 0;
     virtual ssize_t write(int fd, std::span<const std::byte> packet) = 0;
@@ -21,6 +22,7 @@ public:
 class LinuxTunSyscalls final : public TunSyscalls {
 public:
     int open_device() override;
+    int close(int fd) noexcept override;
     int attach(int fd, ifreq &request) override;
     ssize_t read(int fd, std::span<std::byte> buffer) override;
     ssize_t write(int fd, std::span<const std::byte> packet) override;
