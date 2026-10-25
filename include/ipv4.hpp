@@ -8,13 +8,44 @@
 
 namespace netstack::ipv4 {
 
-constexpr unsigned version(std::span<const std::byte> packet) {
+struct Header {
+    std::uint8_t version{};
+    std::uint8_t ihl{}; // In 32-bit words.
+    std::uint8_t tos{};
+    std::uint16_t tot_length{};
+    std::uint16_t identification{};
+    std::uint8_t flags{};
+    std::uint16_t fragment_offset{}; // In eight-byte units.
+    std::uint8_t ttl{};
+    std::uint8_t protocol{};
+    std::uint16_t checksum{};
+    std::uint32_t source_addr{};
+    std::uint32_t dest_addr{};
+};
+
+constexpr std::uint8_t version(std::span<const std::byte> packet) {
     if (packet.empty()) {
         throw std::invalid_argument("version requested for empty packet");
     }
 
-    auto ver_nibble = std::to_integer<unsigned>(packet[0] >> 4);
+    auto ver_nibble = std::to_integer<std::uint8_t>(packet[0] >> 4);
     return ver_nibble;
+}
+
+constexpr std::uint8_t ihl(std::span<const std::byte> packet) {
+    if (packet.empty()) {
+        throw std::invalid_argument("ihl requested for empty packet");
+    }
+
+    return std::to_integer<std::uint8_t>(packet[0] & std::byte{0x0f});
+}
+
+constexpr std::uint8_t read_8(std::span<const std::byte> byte_arr) {
+    if (byte_arr.size() != 1) {
+        throw std::invalid_argument("read_8() received incompatible byte array");
+    }
+
+    return std::to_integer<std::uint8_t>(byte_arr[0]);
 }
 
 constexpr std::uint16_t read_16(std::span<const std::byte> byte_arr) {
@@ -59,6 +90,9 @@ constexpr void write_32(std::span<std::byte> byte_arr, std::uint32_t value) {
     byte_arr[2] = static_cast<std::byte>((value >> 8) & 0xff);
     byte_arr[3] = static_cast<std::byte>(value & 0xff);
 }
+
+Header parse_header(std::span<const std::byte> packet);
+bool checksum(std::span<const std::byte> packet, std::uint16_t header_checksum, std::uint8_t ihl);
 
 } // namespace netstack::ipv4
 

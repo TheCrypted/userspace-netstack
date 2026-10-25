@@ -6,14 +6,28 @@ The goal is to support ICMP ping, UDP echo on port 9000, and a minimal TCP echo 
 
 ## Build
 
-Requires Linux, a C++20 compiler, and CMake 3.20 or newer.
+Requires Linux, a C++20 compiler, CMake 3.20 or newer, and GoogleTest/GoogleMock. On Ubuntu, install the test dependencies with `sudo apt install libgtest-dev libgmock-dev`.
 
 ```sh
 cmake -S . -B build
 cmake --build build
+ctest --test-dir build --output-on-failure
 ```
 
-The executable is `build/app`. TUN access requires `/dev/net/tun` and suitable interface permissions.
+The executable is `build/network_stack`. Use `-DBUILD_TESTING=OFF` when configuring to build without test dependencies.
+
+## Run
+
+Create a persistent TUN interface owned by your user (repeat after reboot or WSL shutdown):
+
+```sh
+sudo ip tuntap add dev tun0 mode tun user "$USER"
+sudo ip addr add 10.0.0.1/24 dev tun0
+sudo ip link set tun0 up
+./build/network_stack
+```
+
+In separate terminals, run `sudo tcpdump -ni tun0 -vv -XX` and `ping -c 3 10.0.0.2`. The program logs packet lengths and IP versions. Ping replies are not implemented yet.
 
 ## Formatting
 
@@ -27,10 +41,12 @@ clang-format -i include/*.hpp src/*.cpp tests/unit/*.cpp tests/support/*.hpp
 
 ## Current status
 
-Initial implementation: descriptor ownership, TUN attachment and packet reading, and IPv4 version extraction. Packet writing is a placeholder. The executable is not yet connected to the TUN code; it currently prints a startup message and loops until interrupted.
+TUN packet reads and writes use RAII descriptor ownership and injectable syscalls, including cleanup. Unit tests cover descriptor moves, packet I/O, retries, and errors.
+
+Milestone 2 is in progress: endian read/write helpers, fixed IPv4 header extraction, IHL/length validation, and a separate header checksum verifier are implemented. The executable currently reads TUN traffic and logs length/version; it does not yet call the full parser or checksum verifier. All 41 unit tests pass; live interoperability evidence remains to be recorded.
 
 ## Next steps
 
-Connect packet reading to the executable, then add IPv4 validation and checksums, ICMP, UDP, an epoll/timer runtime, and TCP handshake, data, close, and retransmission. Each stage will include tests and packet-capture evidence, followed by reproducible latency and CPU measurements.
+Finish IPv4 version and unsupported-feature rejection, integrate checksum verification, and add header serialization and general checksum tests including odd-length inputs. Then implement ICMP, UDP, an epoll/timer runtime, and TCP handshake, data, close, and retransmission. Record tests and packet-capture evidence for each stage, followed by reproducible latency and CPU measurements.
 
 IPv6, Ethernet/TAP, routing, fragmentation support, and advanced TCP features are outside the initial scope. Intended for a local lab environment.

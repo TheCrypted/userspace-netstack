@@ -18,7 +18,7 @@ int main() {
             if (packet_size > 0) {
                 auto packet = std::span<const std::byte>{td.buffer.data(), packet_size};
                 std::cout << "Received packet: " << packet_size << " bytes, IP version "
-                          << netstack::ipv4::version(packet) << std::endl;
+                          << static_cast<unsigned>(netstack::ipv4::version(packet)) << std::endl;
             }
         } catch (const std::runtime_error &error) {
             std::cerr << error.what() << '\n';
