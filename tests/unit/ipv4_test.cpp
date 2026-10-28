@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "ipv4.hpp"
+#include "packet_utils.hpp"
 
 namespace netstack::test {
 
@@ -35,29 +36,29 @@ TEST(IPv4Test, ExtractEmptyIhlThrows) {
 }
 
 TEST(IPv4Test, Read8ThrowsWrongSize) {
-    EXPECT_THROW(ipv4::read_8({}), std::invalid_argument);
+    EXPECT_THROW(netstack::read_8({}), std::invalid_argument);
 }
 
 TEST(IPv4Test, Read8Correct) {
     const std::uint8_t val = 0x12;
     std::array bytes{std::byte{0x12}};
 
-    EXPECT_EQ(ipv4::read_8(bytes), val);
+    EXPECT_EQ(netstack::read_8(bytes), val);
 }
 
 TEST(IPv4Test, Read16ThrowsWrongSize) {
-    EXPECT_THROW(ipv4::read_16({}), std::invalid_argument);
+    EXPECT_THROW(netstack::read_16({}), std::invalid_argument);
 }
 
 TEST(IPv4Test, Read16Correct) {
     const std::uint16_t val = 0x1234;
     const std::array bytes{std::byte{0x12}, std::byte{0x34}};
 
-    EXPECT_EQ(ipv4::read_16(bytes), val);
+    EXPECT_EQ(netstack::read_16(bytes), val);
 }
 
 TEST(IPv4Test, Read32ThrowsWrongSize) {
-    EXPECT_THROW(ipv4::read_32({}), std::invalid_argument);
+    EXPECT_THROW(netstack::read_32({}), std::invalid_argument);
 }
 
 const std::uint32_t val = 0x12345678;
@@ -69,30 +70,30 @@ TEST(IPv4Test, Read32Correct) {
         std::byte{0x78},
     };
 
-    EXPECT_EQ(ipv4::read_32(bytes), val);
+    EXPECT_EQ(netstack::read_32(bytes), val);
 }
 TEST(IPv4Test, Write16ThrowsWrongSize) {
-    EXPECT_THROW(ipv4::write_16({}, 0x1234), std::invalid_argument);
+    EXPECT_THROW(netstack::write_16({}, 0x1234), std::invalid_argument);
 }
 
 TEST(IPv4Test, Write16Correct) {
     std::array<std::byte, 2> bytes{};
     const std::array expected{std::byte{0x12}, std::byte{0x34}};
 
-    ipv4::write_16(bytes, 0x1234);
+    netstack::write_16(bytes, 0x1234);
 
     EXPECT_EQ(bytes, expected);
 }
 
 TEST(IPv4Test, Write32ThrowsWrongSize) {
-    EXPECT_THROW(ipv4::write_32({}, 0x12345678), std::invalid_argument);
+    EXPECT_THROW(netstack::write_32({}, 0x12345678), std::invalid_argument);
 }
 
 TEST(IPv4Test, Write32Correct) {
     std::array<std::byte, 4> bytes{};
     const std::array expected{std::byte{0x12}, std::byte{0x34}, std::byte{0x56}, std::byte{0x78}};
 
-    ipv4::write_32(bytes, 0x12345678);
+    netstack::write_32(bytes, 0x12345678);
 
     EXPECT_EQ(bytes, expected);
 }
@@ -166,15 +167,17 @@ constexpr std::array checksum_packet{
 }
 
 TEST(IPv4Test, ChecksumAcceptsKnownHeader) {
-    EXPECT_TRUE(ipv4::checksum(checksum_packet, 0x3aca, 5));
+    EXPECT_NO_THROW(ipv4::parse_ip_packet(checksum_packet));
 }
 
 TEST(IPv4Test, ChecksumRejectsCorruption) {
-    EXPECT_FALSE(ipv4::checksum(checksum_packet, 0x3acb, 5));
-
     auto packet = checksum_packet;
+    packet[11] = std::byte{0xcb}; // Corrupt the stored checksum.
+    EXPECT_THROW(ipv4::parse_ip_packet(packet), std::invalid_argument);
+
+    packet = checksum_packet;
     packet[8] = std::byte{0x41}; // Change TTL without updating checksum.
-    EXPECT_FALSE(ipv4::checksum(packet, 0x3aca, 5));
+    EXPECT_THROW(ipv4::parse_ip_packet(packet), std::invalid_argument);
 }
 
 TEST(IPv4Test, ChecksumExcludesPayload) {
@@ -184,9 +187,9 @@ TEST(IPv4Test, ChecksumExcludesPayload) {
     packet[11] = std::byte{0xc9};
     packet[20] = std::byte{0xff};
 
-    EXPECT_TRUE(ipv4::checksum(packet, 0x3ac9, 5));
+    EXPECT_NO_THROW(ipv4::parse_ip_packet(packet));
     packet[20] = std::byte{0x12};
-    EXPECT_TRUE(ipv4::checksum(packet, 0x3ac9, 5));
+    EXPECT_NO_THROW(ipv4::parse_ip_packet(packet));
 }
 
 TEST(IPv4Test, ChecksumFoldsRepeatedCarries) {
@@ -194,14 +197,23 @@ TEST(IPv4Test, ChecksumFoldsRepeatedCarries) {
     std::array<std::byte, 20> packet{};
     packet[0] = packet[1] = packet[2] = packet[3] = std::byte{0xff};
     packet[5] = std::byte{0x01};
+    packet[10] = std::byte{0xff};
+    packet[11] = std::byte{0xfe};
 
-    EXPECT_TRUE(ipv4::checksum(packet, 0xfffe, 5));
+    EXPECT_EQ(netstack::internet_checksum(packet), 0u);
 }
 
-TEST(IPv4Test, ChecksumRejectsInvalidHeaderLength) {
-    EXPECT_THROW(ipv4::checksum(checksum_packet, 0x3aca, 4), std::invalid_argument);
-    EXPECT_THROW(ipv4::checksum(checksum_packet, 0x3aca, 6), std::invalid_argument);
-    EXPECT_THROW(ipv4::checksum(checksum_packet, 0x3aca, 16), std::invalid_argument);
-}
+TEST(IPv4Test, ParseIPV4ParsesCorrectHeaderAndData) {
+    std::array<std::byte, 21> packet{};
+    std::copy(checksum_packet.begin(), checksum_packet.end(), packet.begin());
+    packet[3] = std::byte{0x15}; // Total length 21; adjusted header checksum 0x3ac9.
+    packet[11] = std::byte{0xc9};
+    packet[20] = std::byte{0xff};
 
+    auto ip_packet = ipv4::parse_ip_packet(packet);
+    EXPECT_EQ(ip_packet.header.tot_length, 21u);
+    EXPECT_EQ(ip_packet.header.source_addr, 0xc0000201u);
+    ASSERT_EQ(ip_packet.data.size(), 1u);
+    EXPECT_EQ(ip_packet.data[0], packet[20]);
+}
 } // namespace netstack::test

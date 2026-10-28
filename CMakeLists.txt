@@ -7,9 +7,15 @@ add_executable(network_stack
     src/tun_device.cpp
     src/tun_syscalls.cpp
     src/ipv4.cpp
+    src/icmp.cpp
+    src/packet_utils.cpp
+    src/packet_handler.cpp
     include/tun_device.hpp
     include/unique_fd.hpp
     include/ipv4.hpp
+    include/icmp.hpp
+    include/packet_utils.hpp
+    include/packet_handler.hpp
 )
 
 target_compile_features(network_stack PRIVATE cxx_std_20)
@@ -29,9 +35,13 @@ if (BUILD_TESTING)
 
     add_executable(netstack_tests
         tests/unit/ipv4_test.cpp
+        tests/unit/icmp_test.cpp
         tests/unit/unique_fd_test.cpp
         tests/unit/tun_device_test.cpp
         src/ipv4.cpp
+        src/icmp.cpp
+        src/packet_utils.cpp
+        src/packet_handler.cpp
         src/tun_device.cpp
         src/tun_syscalls.cpp
     )

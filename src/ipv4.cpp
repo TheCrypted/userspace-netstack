@@ -1,4 +1,5 @@
 #include "ipv4.hpp"
+#include "packet_utils.hpp"
 
 namespace netstack::ipv4 {
 
@@ -42,24 +43,15 @@ Header parse_header(std::span<const std::byte> packet) {
     return header;
 }
 
-// Compares the supplied checksum against the header, skipping checksum bytes 10-11.
-bool checksum(std::span<const std::byte> packet, std::uint16_t header_checksum, std::uint8_t ihl) {
-    const auto header_length = static_cast<std::size_t>(ihl) * 4;
-    if (ihl < 5 || ihl > 15 || header_length > packet.size()) {
-        throw std::invalid_argument("Invalid IPv4 header length for checksum");
-    }
+Packet<Header> parse_ip_packet(std::span<const std::byte> data) {
+    Packet<Header> packet{parse_header(data), {}};
+    const auto header_len = static_cast<std::size_t>(packet.header.ihl) * 4;
+    if (internet_checksum(data.first(header_len)) != 0)
+        throw std::invalid_argument("Provided packet contained invalid header");
 
-    std::uint32_t acc = 0;
+    packet.data = data.subspan(header_len, packet.header.tot_length - header_len);
 
-    for (std::size_t i = 0; i < header_length; i += 2) {
-        if (i == 10)
-            continue; // the checksum field itself
-        acc += static_cast<std::uint32_t>(read_16(packet.subspan(i, 2)));
-        while (acc >> 16)
-            acc = (acc & 0xffff) + (acc >> 16);
-    }
-
-    return static_cast<std::uint16_t>(~acc) == header_checksum;
+    return packet;
 }
 
 } // namespace netstack::ipv4
