@@ -167,7 +167,8 @@ constexpr std::array checksum_packet{
 }
 
 TEST(IPv4Test, ChecksumAcceptsKnownHeader) {
-    EXPECT_NO_THROW(ipv4::parse_ip_packet(checksum_packet));
+    auto packet = checksum_packet;
+    EXPECT_NO_THROW(ipv4::parse_ip_packet(packet));
 }
 
 TEST(IPv4Test, ChecksumRejectsCorruption) {
@@ -216,4 +217,37 @@ TEST(IPv4Test, ParseIPV4ParsesCorrectHeaderAndData) {
     ASSERT_EQ(ip_packet.data.size(), 1u);
     EXPECT_EQ(ip_packet.data[0], packet[20]);
 }
+TEST(IPv4Test, CreatesKnownHeaderAndPreservesPayload) {
+    const ipv4::Header header{.version = 4,
+                              .ihl = 5,
+                              .tos = 0xb8,
+                              .tot_length = 21,
+                              .identification = 0x1234,
+                              .flags = 2,
+                              .fragment_offset = 0,
+                              .ttl = 64,
+                              .protocol = 253,
+                              .checksum = 0xffff,
+                              .source_addr = 0xc0000201,
+                              .dest_addr = 0xc6336402};
+    std::array<std::byte, 21> buffer{};
+    buffer[20] = std::byte{0xab};
+    auto expected = checksum_packet;
+    expected[3] = std::byte{0x15};
+    expected[11] = std::byte{0xc9};
+
+    ipv4::create_header(buffer, header);
+
+    EXPECT_TRUE(std::equal(expected.begin(), expected.end(), buffer.begin()));
+    EXPECT_EQ(buffer[20], std::byte{0xab});
+}
+
+TEST(IPv4Test, CreateHeaderRejectsShortBuffer) {
+    std::array<std::byte, 19> buffer{};
+    const auto original = buffer;
+
+    EXPECT_THROW(ipv4::create_header(buffer, ipv4::Header{}), std::invalid_argument);
+    EXPECT_EQ(buffer, original);
+}
+
 } // namespace netstack::test

@@ -20,7 +20,13 @@ struct EchoHeader {
 
 EchoHeader parse_header(std::span<const std::byte> packet);
 
-Packet<EchoHeader> parse_icmp_packet(std::span<const std::byte> data);
+Packet<EchoHeader> parse_icmp_packet(std::span<std::byte> data);
+
+void create_header(std::span<std::byte> packet, std::uint8_t type, std::uint16_t identifier,
+                   std::uint16_t seq_num, size_t payload_len);
+
+void create_reply(std::span<std::byte> buffer, const EchoHeader &header,
+                  std::span<const std::byte> data);
 
 } // namespace netstack::icmp
 

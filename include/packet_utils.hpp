@@ -39,6 +39,14 @@ constexpr std::uint32_t read_32(std::span<const std::byte> byte_arr) {
                                       std::to_integer<unsigned>(byte_arr[3]));
 }
 
+constexpr void write_8(std::span<std::byte> byte_arr, std::uint8_t value) {
+    if (byte_arr.size() != 1) {
+        throw std::invalid_argument("write_8() received incompatible byte array");
+    }
+
+    byte_arr[0] = static_cast<std::byte>(value);
+}
+
 constexpr void write_16(std::span<std::byte> byte_arr, std::uint16_t value) {
     if (byte_arr.size() != 2) {
         throw std::invalid_argument("write_16() received incompatible byte array");

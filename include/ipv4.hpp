@@ -43,7 +43,12 @@ constexpr std::uint8_t ihl(std::span<const std::byte> packet) {
 }
 
 Header parse_header(std::span<const std::byte> packet);
-Packet<Header> parse_ip_packet(std::span<const std::byte> data);
+Packet<Header> parse_ip_packet(std::span<std::byte> data);
+
+// Writes a fixed 20-byte header; checksum is calculated rather than copied.
+void create_header(std::span<std::byte> buffer, const Header &header);
+void create_reply(std::span<std::byte> buffer, const Header &header,
+                  std::span<const std::byte> data);
 
 } // namespace netstack::ipv4
 
